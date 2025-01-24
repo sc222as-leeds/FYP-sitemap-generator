@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import requests
 import queue
+import time
 import re
 
 class Graph:
@@ -14,7 +15,8 @@ class Graph:
         self.root = root
 
 class Node:
-    def __init__(self, url, neighbour_nodes):
+    def __init__(self, parent, url, neighbour_nodes):
+        self.parent = parent
         self.url = url
         self.neighbour_nodes = neighbour_nodes
 
@@ -32,7 +34,7 @@ def index():
 def displayResult():
     url = request.args.get('url', None)
 
-    root = Node(url, [])
+    root = Node("", url, [])
 
     graph = Graph(root)
 
@@ -40,14 +42,23 @@ def displayResult():
 
     string = root.url + ":"
 
-    string = Search(graph, root, string)
+    string = Search(graph, root, string, 0, root, 3)
 
     return render_template('result.html',
                     title='Result',
                     result=string)
 
-def Search(graph, current_node, string):
+def Search(graph, current_node, string, depth, parent, max_depth):
     url = current_node.url
+
+    if current_node.parent != parent:
+        parent = current_node.parent
+        depth += 1
+
+    if depth > max_depth:
+        return string
+
+    Wait(6) # wait 6 seconds before next call
 
     try:
         response = requests.get(url, timeout=10)
@@ -73,7 +84,7 @@ def Search(graph, current_node, string):
                 full_url = urljoin(url, href)
                 results.append(full_url)
 
-                node = Node(full_url, [])
+                node = Node(current_node.url, full_url, [])
 
                 parsed_url = urlparse(full_url)
 
@@ -90,7 +101,7 @@ def Search(graph, current_node, string):
     if not graph.nodes_queue.empty():
         next_node = graph.nodes_queue.get()
         string += next_node.url + ":"
-        return Search(graph, next_node, string)
+        return Search(graph, next_node, string, depth, parent, max_depth)
     else:
         return string
 
@@ -99,3 +110,9 @@ def ReturnResults(graph):
     for element in graph.discovered_nodes:
         string += element + "\n"
     return string
+
+def Wait(delay):
+    start_time = time.time()
+    time_passed = time.time()
+    while (time_passed - start_time) < delay:
+        time_passed = time.time()
