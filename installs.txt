@@ -1,0 +1,7 @@
+flask_migrate
+flask_sqlalchemy
+flask_wtf
+flask_login
+flask_bcrypt
+requests
+beautifulsoup4
