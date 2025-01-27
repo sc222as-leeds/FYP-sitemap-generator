@@ -9,6 +9,8 @@ import time
 import json
 import re
 
+start_time = time.time()
+
 class Node:
     def __init__(self, parent, url, neighbour_nodes):
         self.parent = parent
@@ -66,6 +68,7 @@ def displayResult():
                     graph=graph)
 
 def Search(graph, current_node, string, depth, parent, max_depth):
+    global start_time
     url = current_node.url
 
     if current_node.parent != parent:
@@ -82,6 +85,8 @@ def Search(graph, current_node, string, depth, parent, max_depth):
         response.raise_for_status()
         # Get the source code
         html = response.text
+
+        start_time = time.time()
 
         # html_no_comments = re.sub(r'<!--.*?-->', '', html, flags=re.DOTALL)
 
@@ -129,7 +134,6 @@ def ReturnResults(graph):
     return string
 
 def Wait(delay):
-    start_time = time.time()
     time_passed = time.time()
     while (time_passed - start_time) < delay:
         time_passed = time.time()
