@@ -13,6 +13,76 @@
 
 </head>
 
+<style>
+    .tree {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .node {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 50px;
+      height: 50px;
+      background-color: #007bff;
+      color: #fff;
+      border-radius: 4px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .children {
+      display: none;
+      margin-top: 25px;
+      display: flex;
+      gap: 20px;
+      position: relative;
+    }
+</style>
+
 <body>
-    {{ result }}
+    <div class="tree" onclick="ToggleChildren(event, this)">
+        <div class="node">{{ graph.root.url }}</div>
+        <div class="children">
+            {% for child in graph.root.neighbour_nodes %}
+                <div class="tree" onclick="CreateChildrenNodes(event, this, '{{ child }}')">
+                    <div class="node">{{ child }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        const graph = JSON.parse('{{ graph_json|safe }}');
+
+        function ToggleChildren(event, node) {
+            event.stopPropagation();
+            $(node).children().each(function() {
+                const $child = $(this);
+                if ($child.hasClass('children')) {
+                    $child.toggle();
+                }
+            });
+        }
+
+        function CreateChildrenNodes(event, element, node) {
+            event.stopPropagation();
+            if (graph["discovered_nodes"][node]["neighbour_nodes"].length > 0) {
+                const childrenContainer = $(`<div class="children"></div>`);
+                $.each(graph["discovered_nodes"][node]["neighbour_nodes"], function(index, value) {
+                    childrenContainer.append(`
+                    <div class="tree" onclick="CreateChildrenNodes(event, this, '${value}')">
+                        <div class="node">${value}</div>
+                    </div>
+                    `);
+                });
+                $(element).append(childrenContainer);
+            }
+            $(element).attr("onclick", `ToggleChildren(event, this)`);
+        }
+    </script>
 </body>

@@ -6,19 +6,33 @@ from urllib.parse import urljoin, urlparse
 import requests
 import queue
 import time
+import json
 import re
-
-class Graph:
-    def __init__(self, root):
-        self.nodes_queue = queue.Queue()
-        self.discovered_nodes = set()
-        self.root = root
 
 class Node:
     def __init__(self, parent, url, neighbour_nodes):
         self.parent = parent
         self.url = url
         self.neighbour_nodes = neighbour_nodes
+
+    def dict(self):
+        return {
+            "parent" : self.parent,
+            "url" : self.url,
+            "neighbour_nodes" : self.neighbour_nodes
+        }
+
+class Graph:
+    def __init__(self, root):
+        self.nodes_queue = queue.Queue()
+        self.discovered_nodes = {}
+        self.root = root
+
+    def dict(self):
+        return {
+            "root" : self.root.dict(),
+            "discovered_nodes" : { url : node.dict() for url, node in self.discovered_nodes.items() }
+        }
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -38,15 +52,18 @@ def displayResult():
 
     graph = Graph(root)
 
-    graph.discovered_nodes.add(root.url)
+    graph.discovered_nodes[root.url] = root
 
     string = root.url + ":"
 
     string = Search(graph, root, string, 0, root, 3)
 
+    grap_data = graph.dict()
+
     return render_template('result.html',
                     title='Result',
-                    result=string)
+                    graph_json=json.dumps(grap_data),
+                    graph=graph)
 
 def Search(graph, current_node, string, depth, parent, max_depth):
     url = current_node.url
@@ -90,7 +107,7 @@ def Search(graph, current_node, string, depth, parent, max_depth):
 
                 if parsed_url.path and full_url not in graph.discovered_nodes:
                     graph.nodes_queue.put(node)
-                    graph.discovered_nodes.add(full_url)
+                    graph.discovered_nodes[full_url] = node
 
         current_node.neighbour_nodes = results
 
@@ -107,8 +124,8 @@ def Search(graph, current_node, string, depth, parent, max_depth):
 
 def ReturnResults(graph):
     string = ""
-    for element in graph.discovered_nodes:
-        string += element + "\n"
+    for key, element in graph.discovered_nodes:
+        string += key + "\n"
     return string
 
 def Wait(delay):
